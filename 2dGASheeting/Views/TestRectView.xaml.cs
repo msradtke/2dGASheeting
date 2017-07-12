@@ -12,24 +12,17 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using _2dGASheeting.ViewModels;
-namespace _2dGASheeting
+
+namespace _2dGASheeting.Views
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    /// Interaction logic for TestRectView.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class TestRectView : UserControl
     {
-        public TestRectViewModel View;
-
-        public MainWindow()
+        public TestRectView()
         {
-            var vm = new MainViewModel();
             InitializeComponent();
-            
-            this.DataContext = vm;
-            vm.View = new TestRectViewModel();
-            
         }
     }
 }
