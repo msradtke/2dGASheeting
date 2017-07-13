@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace _2dGASheeting.Models
 {
-    public class Rect
+    public class Rect : IEquatable<Rect>, IEqualityComparer<Rect>
     {
         public Rect()
         {
@@ -23,5 +23,38 @@ namespace _2dGASheeting.Models
         public double Width { get; set; }
         public double X { get; set; }
         public double Y { get; set; }
+
+        public bool Equals(Rect other)
+        {
+            if (Height != other.Height) return false;
+            if (Width != other.Width) return false;
+            return true;
+        }
+
+        public bool Equals(Rect x, Rect y)
+        {
+            if (x.Height != y.Height) return false;
+            if (x.Width != y.Width) return false;
+            return true;
+        }
+
+        public int GetHashCode(Rect obj)
+        {
+            return obj.GetHashCode();
+        }
+    }
+    public class RectComparer : IEqualityComparer<Rect>
+    {
+        public bool Equals(Rect x, Rect y)
+        {
+            if (x.Height != y.Height) return false;
+            if (x.Width != y.Width) return false;
+            return true;
+        }
+
+        public int GetHashCode(Rect obj)
+        {
+            return (int)(obj.Height * obj.Width * 23);
+        }
     }
 }

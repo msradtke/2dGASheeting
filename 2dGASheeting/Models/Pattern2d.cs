@@ -12,7 +12,6 @@ namespace _2dGASheeting.Models
         {
             Blanks = new List<Rect>();
             Spaces = new List<Rect>();
-
             
         }
         public List<Rect> Blanks { get; set; }

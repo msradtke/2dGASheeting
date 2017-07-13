@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
+
 namespace _2dGASheeting.Models
 {
     public class BottomLeftBestFitHeuristic
@@ -12,10 +13,14 @@ namespace _2dGASheeting.Models
         Dictionary<Rect, int> _demand;
         List<PatternDemand2d> _patternDemands;
         Rect _master;
-        public BottomLeftBestFitHeuristic(Dictionary<Rect, int> demand, Rect master)
+        Func<List<Rect>, List<Rect>> _sort;
+        public BottomLeftBestFitHeuristic(Dictionary<Rect, int> demand, Rect master, Func<List<Rect>,List<Rect>> sort)
         {
             _demand = demand;
             _master = master;
+            _sort = sort;
+
+            
         }
         public void ProcessOld()
         {
@@ -59,7 +64,9 @@ namespace _2dGASheeting.Models
             Rect newBlank = null;
             while (!allDemandComplete)
             {
-                var orderedSizes = residualDemand.Where(x => x.Value > 0).Select(x => x.Key).OrderBy(x => x.Height * x.Width).ToList();
+                //var orderedSizes = residualDemand.Where(x => x.Value > 0).Select(x => x.Key).OrderBy(x => x.Height * x.Width).ToList(); //ordered by area
+                var orderedSizes = _sort(residualDemand.Where(x => x.Value > 0).Select(x => x.Key).ToList()).ToList();
+
                 var stack = new Stack<Rect>(orderedSizes);
                 var pattern = new Pattern2d();
                 addedBlanks = new List<Rect>();
@@ -93,7 +100,7 @@ namespace _2dGASheeting.Models
                             {
                                 if (FitsLongToHeight(blank, space, longSide, shortSide))
                                     blankFits = true;
-                                else if (FitsLongToHeight(blank, space, longSide, shortSide))
+                                else if (FitsShortToHeight(blank, space, longSide, shortSide))
                                     blankFits = true;
 
                                 if (blankFits == true)
@@ -115,6 +122,8 @@ namespace _2dGASheeting.Models
                     }
                     if (masterIsComplete)
                     {
+                        if (pattern.Blanks.Count > 0)
+                            SetSpaces(pattern);
                         var max = MaxPatterns(pattern, residualDemand, addedBlanks);
                         foreach (var i in addedBlanks)
                         {
@@ -289,13 +298,5 @@ namespace _2dGASheeting.Models
 
 
     }
-
-    public class RectComparer : Comparer<Rect>
-    {
-        public override int Compare(Rect x, Rect y)
-        {
-            throw new NotImplementedException();
-        }
-
-    }
+    
 }

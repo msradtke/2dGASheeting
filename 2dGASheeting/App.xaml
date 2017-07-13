@@ -6,6 +6,15 @@
              xmlns:views="clr-namespace:_2dGASheeting.Views"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
+        <DataTemplate DataType="{x:Type vm:CanvasViewModel}">
+            <views:CanvasView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SolutionContainerViewModel}">
+            <views:SolutionsContainerView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SolutionViewModel}">
+            <views:SolutionView/>
+        </DataTemplate>
         <DataTemplate DataType="{x:Type vm:TestRectViewModel}">
             <views:TestRectView/>
         </DataTemplate>
