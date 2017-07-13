@@ -15,15 +15,18 @@ namespace _2dGASheeting.ViewModels
         {
             _2dGeneticAlg alg = new _2dGeneticAlg();
             alg.UseSampleData();
-            alg.Process();
+            var list = alg.CreateInitialSolutions();
+
+
             //BottomLeftBestFitHeuristic test = new BottomLeftBestFitHeuristic();
             //var pattern = test.Process();
-            //var service = new DrawPattern2dService(pattern.Blanks,pattern.Spaces,pattern.Master,5);
-            //Canvas = service.GetCanvas();
+            var master = list.First().Pattern.Master;
+            var service = new DrawPattern2dService(list,master,5);
+            Canvas = service.GetCanvas();
             
         }
-        public Canvas Canvas { get; set; }
-
+        //public Canvas Canvas { get; set; }
+        public List<Canvas> Canvas { get; set; }
 
     }
 }

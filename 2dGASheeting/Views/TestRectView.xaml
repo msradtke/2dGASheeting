@@ -8,6 +8,21 @@
              d:DesignHeight="300" d:DesignWidth="300">
     <Grid>
         <TextBlock>Test</TextBlock>
-        <ContentControl Content="{Binding Canvas}"/>
+        <ItemsControl ItemsSource="{Binding Path=Canvas}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Canvas/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle>
+                <Style TargetType="Canvas">
+                    <Setter Property="Canvas.Left" Value="{Binding Left}"/>
+                    <Setter Property="Canvas.Top" Value="{Binding Top}"/>
+                    <Setter Property="Canvas.Height" Value="{Binding Height}"/>
+                    <Setter Property="Canvas.Width" Value="{Binding Width}"/>
+                </Style>
+            </ItemsControl.ItemContainerStyle>
+            
+        </ItemsControl>
     </Grid>
 </UserControl>

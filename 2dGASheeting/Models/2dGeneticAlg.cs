@@ -33,10 +33,10 @@ namespace _2dGASheeting.Models
         {
             CreateInitialSolutions();
         }
-        void CreateInitialSolutions()
+        public List<PatternDemand2d> CreateInitialSolutions()
         {
             var BLBF = new BottomLeftBestFitHeuristic(_demand,_master);
-            BLBF.Process();
+            return BLBF.Process();
         }
         Func<Solution> GetSelectParentFn()
         {

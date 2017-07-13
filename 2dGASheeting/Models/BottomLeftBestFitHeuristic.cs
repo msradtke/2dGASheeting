@@ -12,7 +12,7 @@ namespace _2dGASheeting.Models
         Dictionary<Rect, int> _demand;
         List<PatternDemand2d> _patternDemands;
         Rect _master;
-        public BottomLeftBestFitHeuristic(Dictionary<Rect, int> demand, Rect  master)
+        public BottomLeftBestFitHeuristic(Dictionary<Rect, int> demand, Rect master)
         {
             _demand = demand;
             _master = master;
@@ -53,7 +53,7 @@ namespace _2dGASheeting.Models
         public List<PatternDemand2d> Process()
         {
             _patternDemands = new List<PatternDemand2d>();
-
+            var addedBlanks = new List<Rect>();
             var residualDemand = new Dictionary<Rect, int>(_demand);
             bool allDemandComplete = false;
             Rect newBlank = null;
@@ -62,26 +62,28 @@ namespace _2dGASheeting.Models
                 var orderedSizes = residualDemand.Where(x => x.Value > 0).Select(x => x.Key).OrderBy(x => x.Height * x.Width).ToList();
                 var stack = new Stack<Rect>(orderedSizes);
                 var pattern = new Pattern2d();
+                addedBlanks = new List<Rect>();
                 pattern.Master = _master;
                 pattern.SetMasterSpace();
                 bool masterIsComplete = false;
                 while (!masterIsComplete)
                 {
-                    if (stack.Count == 0) 
+                    if (stack.Count == 0)
                         masterIsComplete = true;
                     else
                     {
                         newBlank = stack.Pop();
-                        var blank = new Rect(newBlank);
-                        if (residualDemand[newBlank] == 0)
+                        var tempDemand = residualDemand[newBlank];
+                        if (tempDemand == 0)
                             continue;
                         bool blankFits = true;
 
                         while (blankFits)
                         {
-                            if(pattern.Blanks.Count >0)
+                            var blank = new Rect(newBlank);
+                            if (pattern.Blanks.Count > 0)
                                 SetSpaces(pattern);
-                            
+
                             blankFits = false;
                             var longSide = blank.Width >= blank.Width ? blank.Width : blank.Y;
                             var shortSide = longSide == blank.Width ? blank.Height : blank.Width;
@@ -99,24 +101,28 @@ namespace _2dGASheeting.Models
                                     blank.X = space.X;
                                     blank.Y = space.Y;
                                     pattern.Blanks.Add(blank);
-                                    //residualDemand[blank]--;
+                                    if (!addedBlanks.Contains(newBlank))
+                                        addedBlanks.Add(newBlank);
+                                    tempDemand--;
                                     break;
                                 }
                             }
+                            if (tempDemand == 0)
+                                break;
 
                         }
-                        
+
                     }
                     if (masterIsComplete)
                     {
-                        var max = MaxPatterns(pattern, residualDemand,newBlank);
-                        var distinct = pattern.GetDistinct();
-                        foreach (var i in distinct)
+                        var max = MaxPatterns(pattern, residualDemand, addedBlanks);
+                        foreach (var i in addedBlanks)
                         {
+                            var sub = max * pattern.Blanks.Count(x => x.Width == i.Width && x.Height == i.Height);
+                            residualDemand[i] -= sub;
                             
-                            residualDemand[newBlank] -= max*pattern.Blanks.Count(x=>x.X == i.X && x.Y == i.Y);
-                            _patternDemands.Add(new PatternDemand2d { Pattern = pattern, Demand = max });
                         }
+                        _patternDemands.Add(new PatternDemand2d { Pattern = pattern, Demand = max });
                         if (residualDemand.Count(x => x.Value > 0) == 0)
                             allDemandComplete = true;
                     }
@@ -125,25 +131,20 @@ namespace _2dGASheeting.Models
             }
             return _patternDemands;
         }
-        int MaxPatterns(Pattern2d pattern, Dictionary<Rect, int> residualDemand, Rect demandReference)
+        int MaxPatterns(Pattern2d pattern, Dictionary<Rect, int> residualDemand, List<Rect> demandReference)
         {
             int max = int.MaxValue;
-            List<Rect> used = new List<Rect>();
-            foreach(var item in pattern.Blanks)
+            foreach (var item in demandReference)
             {
-                int useCnt = 0;
-                useCnt = used.Count(x => x.Width == item.Width && x.Height == item.Height);
-                if (useCnt == 0)
-                {
-                    used.Add(item);
-                    var count = pattern.Blanks.Count(x => x.Width == item.Width && x.Height == item.Height);
 
-                    
-                    var demand = residualDemand[demandReference];
-                    var thisMax = demand / count;
-                    if (thisMax < max)
-                        max = thisMax;
-                }                
+                var count = pattern.Blanks.Count(x => x.Width == item.Width && x.Height == item.Height);
+
+
+                var demand = residualDemand[item];
+                var thisMax = demand / count;
+                if (thisMax < max)
+                    max = thisMax;
+
             }
 
             return max;
