@@ -15,10 +15,11 @@ namespace _2dGASheeting.ViewModels
         {
             _2dGeneticAlg alg = new _2dGeneticAlg();
             alg.UseSampleData();
-            BottomLeftBestFitHeuristic test = new BottomLeftBestFitHeuristic();
-            var pattern = test.Process();
-            var service = new DrawPattern2dService(pattern.Blanks,pattern.Spaces,pattern.Master,5);
-            Canvas = service.GetCanvas();
+            alg.Process();
+            //BottomLeftBestFitHeuristic test = new BottomLeftBestFitHeuristic();
+            //var pattern = test.Process();
+            //var service = new DrawPattern2dService(pattern.Blanks,pattern.Spaces,pattern.Master,5);
+            //Canvas = service.GetCanvas();
             
         }
         public Canvas Canvas { get; set; }

@@ -4,15 +4,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
+
 namespace _2dGASheeting.Models
 {
     public class _2dGeneticAlg
     {
         List<Solution> _solutions;
         int _population;
-        double _master = 96;
-        Dictionary<double, int> _demand;
-        //List<PatternDemand> _patternDemands;
+        Rect _master;
+        Dictionary<Rect, int> _demand;
+        List<PatternDemand2d> _patternDemands;
+        List<Rect> _items;
         double additionalPatternSelection = .10;
 
 
@@ -22,14 +24,19 @@ namespace _2dGASheeting.Models
         }
         public void UseSampleData()
         {
-            /*_demand = SampleData.GetSampleData1();
+            _demand = SampleData.GetSampleData1();
             _items = _demand.Keys.ToList();
             _population = 10;
-            _master = SampleData.MasterLength1;*/
+            _master = SampleData.Master1;
         }
         public void Process()
         {
-
+            CreateInitialSolutions();
+        }
+        void CreateInitialSolutions()
+        {
+            var BLBF = new BottomLeftBestFitHeuristic(_demand,_master);
+            BLBF.Process();
         }
         Func<Solution> GetSelectParentFn()
         {

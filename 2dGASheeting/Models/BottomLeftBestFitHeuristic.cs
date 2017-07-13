@@ -9,12 +9,15 @@ namespace _2dGASheeting.Models
     public class BottomLeftBestFitHeuristic
     {
         List<Rectangle> Spaces;
+        Dictionary<Rect, int> _demand;
+        List<PatternDemand2d> _patternDemands;
         Rect _master;
-        public BottomLeftBestFitHeuristic()
+        public BottomLeftBestFitHeuristic(Dictionary<Rect, int> demand, Rect  master)
         {
-
+            _demand = demand;
+            _master = master;
         }
-        public Pattern2d Process()
+        public void ProcessOld()
         {
             _master = new Rect();
             _master.Width = 96;
@@ -46,138 +49,234 @@ namespace _2dGASheeting.Models
             pattern.Blanks.Add(rect3);
             pattern.Blanks.Add(rect4);
             SetSpaces(pattern);
-            return pattern;
-
         }
-        void SetSpaces(Pattern2d pattern)
+        public List<PatternDemand2d> Process()
         {
-            var spaces = pattern.Spaces = new List<Rect>();
+            _patternDemands = new List<PatternDemand2d>();
 
-            var y = 0d;
-
-
-            var allSpacesFound = false;
-            while (!allSpacesFound)
+            var residualDemand = new Dictionary<Rect, int>(_demand);
+            bool allDemandComplete = false;
+            Rect newBlank = null;
+            while (!allDemandComplete)
             {
-                var x = 0d;
-                var allBlanks = new List<Rect>(pattern.Blanks);
-                allBlanks.AddRange(spaces);
-                var blanks = pattern.Blanks;
-                allBlanks = blanks;
-                var blanksAtY = allBlanks.Where(blank => blank.Y == y);
-                blanksAtY.OrderBy(order => order.X);
-
-                //starting at y=0 find any and all spaces
-                //a space is start at 0 or location of end of last space
-                //get all intercept, order by x ascending
-
-                bool foundAllSpaces = false;
-                List<Rect> allXIntercept = null;
-
-                while (foundAllSpaces == false)
+                var orderedSizes = residualDemand.Where(x => x.Value > 0).Select(x => x.Key).OrderBy(x => x.Height * x.Width).ToList();
+                var stack = new Stack<Rect>(orderedSizes);
+                var pattern = new Pattern2d();
+                pattern.Master = _master;
+                pattern.SetMasterSpace();
+                bool masterIsComplete = false;
+                while (!masterIsComplete)
                 {
-                    if (y == 0)
-                        allXIntercept = allBlanks.Where(blank => Between(y, blank.Y, blank.Y + blank.Height, true)).ToList();
-                    else
-                        allXIntercept = allBlanks.Where(blank => Between(y, blank.Y, blank.Y + blank.Height, false)).ToList();
-
-                    if (x >= _master.Width)
-                        foundAllSpaces = true;
+                    if (stack.Count == 0) 
+                        masterIsComplete = true;
                     else
                     {
-                        var space = new Rect();
-                        space.X = x;
-                        space.Y = y;
-                        var first = allBlanks.Where(blank => blank.X >= x && Between(y, blank.Y, blank.Y + blank.Height, true)).FirstOrDefault();
+                        newBlank = stack.Pop();
+                        var blank = new Rect(newBlank);
+                        if (residualDemand[newBlank] == 0)
+                            continue;
+                        bool blankFits = true;
 
+                        while (blankFits)
+                        {
+                            if(pattern.Blanks.Count >0)
+                                SetSpaces(pattern);
+                            
+                            blankFits = false;
+                            var longSide = blank.Width >= blank.Width ? blank.Width : blank.Y;
+                            var shortSide = longSide == blank.Width ? blank.Height : blank.Width;
+
+                            var orderedSpaces = pattern.Spaces.OrderBy(x => x.Y).ThenBy(x => x.X);
+                            foreach (var space in orderedSpaces)
+                            {
+                                if (FitsLongToHeight(blank, space, longSide, shortSide))
+                                    blankFits = true;
+                                else if (FitsLongToHeight(blank, space, longSide, shortSide))
+                                    blankFits = true;
+
+                                if (blankFits == true)
+                                {
+                                    blank.X = space.X;
+                                    blank.Y = space.Y;
+                                    pattern.Blanks.Add(blank);
+                                    //residualDemand[blank]--;
+                                    break;
+                                }
+                            }
+
+                        }
                         
-                        if (first != null)
-                            if (first.X == x && first.Y >= y) //no space there
-                            {
-                                x += first.Width;
-                                continue;
-                            }
-
-                        var getYGreater = blanks.Where(blank => blank.Y > y).OrderBy(blank => blank.Y);
-                        var intercept = getYGreater.Where(blank => Between(x, blank.X, blank.X + blank.Width, true)).OrderBy(blank => blank.Y).FirstOrDefault();
-                        if (intercept == null)
-                            space.Height = _master.Height - y;
-                        else
-                            space.Height = intercept.Y - y;
-
-                        //if (first == null)
-                        {
-                            //find width, first x intercepting if any
-                            var greaterX = blanks.Where(blank => blank.X > x).OrderBy(blank=>blank.X);
-                            var widthStop = greaterX.Where(blank => Between(y, blank.Y, blank.Y + blank.Height, false) || Between(blank.Y, space.Y, space.Y + space.Height, false) || blank.Y == y);
-
-                            var nextX = widthStop.OrderBy(blank => blank.X).FirstOrDefault();
-                            if (nextX == null)
-                            {
-                                space.Width = _master.Width - x;
-                                foundAllSpaces = true;
-                            }
-                            else
-                            {
-                                space.Width = nextX.X - space.X;
-                                x += space.Width;
-                            }
-
-                        }
-                        //height
-
-
-                        spaces.Add(space);
                     }
-
-                }
-                /*
-                foreach (var b in blanksAtY)
-                {
-                    //no blanks at it's x value, above it 
-                    var spaceLeft = _master.Height - b.Y - b.Height;
-                    if (spaceLeft == 0)
-                        continue;
-
-                    var blanksAbove = pattern.Blanks.Where(blank => blank.X == b.X && blank.Y > blank.Y);
-                    if (blanksAbove.Count() == 0)
+                    if (masterIsComplete)
                     {
-                        var space = new Rect();
-                        space.X = b.X;
-                        space.Y = b.Y+b.Height;
-                        space.Height = spaceLeft;
-
-                        var blanksAtYOrAbove = pattern.Blanks.Where(blank => blank.X > b.X && Between(blank.Y + blank.Height, b.Y, b.Y + b.Height,true));
-                        if (blanksAtYOrAbove.Count() > 0)
+                        var max = MaxPatterns(pattern, residualDemand,newBlank);
+                        var distinct = pattern.GetDistinct();
+                        foreach (var i in distinct)
                         {
-                            var mostLeftInTheWay = blanksAtYOrAbove.OrderBy(blank => blank.X).First();
-                            space.Width = mostLeftInTheWay.X - space.X;
+                            
+                            residualDemand[newBlank] -= max*pattern.Blanks.Count(x=>x.X == i.X && x.Y == i.Y);
+                            _patternDemands.Add(new PatternDemand2d { Pattern = pattern, Demand = max });
                         }
-                        else
-                            space.Width = _master.Width - x;
-                        spaces.Add(space);
+                        if (residualDemand.Count(x => x.Value > 0) == 0)
+                            allDemandComplete = true;
                     }
-                }*/
-
-                //find next y level greater than current
-                var greaterYs = pattern.Blanks.Where(blank => blank.Y + blank.Height > y || blank.Y >= y).OrderBy(blank2 => blank2.Y);
-                if (greaterYs.Count() == 0)
-                {
-                    allSpacesFound = true;
-                }
-                else
-                {
-                    var f = greaterYs.OrderBy(order => order.Y).OrderBy(order=>order.Height).First();
-                    if (f.Y > y)
-                        y = f.Y;
-                    else
-                        y = f.Y + f.Height;
-
                 }
 
             }
-            //var patternsByFurthestRight = pattern.Blanks.OrderByDescending(x => x.X + x.Width).FirstOrDefault();
+            return _patternDemands;
+        }
+        int MaxPatterns(Pattern2d pattern, Dictionary<Rect, int> residualDemand, Rect demandReference)
+        {
+            int max = int.MaxValue;
+            List<Rect> used = new List<Rect>();
+            foreach(var item in pattern.Blanks)
+            {
+                int useCnt = 0;
+                useCnt = used.Count(x => x.Width == item.Width && x.Height == item.Height);
+                if (useCnt == 0)
+                {
+                    used.Add(item);
+                    var count = pattern.Blanks.Count(x => x.Width == item.Width && x.Height == item.Height);
 
+                    
+                    var demand = residualDemand[demandReference];
+                    var thisMax = demand / count;
+                    if (thisMax < max)
+                        max = thisMax;
+                }                
+            }
+
+            return max;
+        }
+        bool FitsLongToHeight(Rect blank, Rect space, double longSide, double shortSide)
+        {
+            if (longSide <= space.Height && shortSide <= space.Width)
+                return true;
+            return false;
+        }
+        bool FitsShortToHeight(Rect blank, Rect space, double longSide, double shortSide)
+        {
+            if (longSide <= space.Width && shortSide <= space.Height)
+                return true;
+            return false;
+        }
+
+        void SetSpaces(Pattern2d pattern)
+        {
+            var spaces = pattern.Spaces = new List<Rect>();
+            var blanks = pattern.Blanks;
+            var sortedBlanks = blanks.OrderBy(blank => blank.X).ThenBy(blank => blank.Y);
+
+            foreach (var blank in sortedBlanks)
+            {
+                var space = new Rect();
+                space.X = blank.X;
+                space.Y = blank.Y + blank.Height;
+                var firstBlankAbove = GetFirstBlockGoingUp(blank, blanks);
+                if (firstBlankAbove == null)
+                    space.Height = _master.Height - space.Y;
+                else
+                {
+                    space.Height = firstBlankAbove.Y - space.Y;
+                }
+
+                var firstBlankRight = GetFirstBlockGoingRight(space, blanks);
+                if (firstBlankRight == null)
+                    space.Width = _master.Width - space.X;
+                else
+                {
+                    space.Width = firstBlankRight.X - space.X;
+                }
+                if (space.Height > 0 && space.Width > 0)
+                    spaces.Add(space);
+
+                space = new Rect();
+                space.X = blank.X + blank.Width;
+                space.Y = blank.Y;
+                firstBlankRight = GetFirstBlockGoingRight(blank, blanks);
+                if (firstBlankRight == null)
+                    space.Width = _master.Width - space.X;
+                else
+                {
+                    space.Width = firstBlankRight.X - space.X;
+                }
+                if (space.Height > 0 && space.Width > 0)
+                    spaces.Add(space);
+
+                firstBlankAbove = GetFirstBlockGoingUp(space, blanks);
+                if (firstBlankAbove == null)
+                    space.Height = _master.Height - space.Y;
+                else
+                {
+                    space.Height = firstBlankAbove.Y - space.Y;
+                }
+                if (space.Height > 0 && space.Width > 0)
+                    spaces.Add(space);
+            }
+
+        }
+        Rect GetFirstBlockGoingUp(Rect blank, List<Rect> blanks)
+        {
+            var blocking = new List<Rect>();
+
+            var blanksAbove = blanks.Where(x => x.Y >= blank.Y && blank != x);
+            foreach (var blocker in blanksAbove)
+            {
+                if (Between(blank.X, blocker.X, blocker.X + blocker.Width, false))
+                {
+                    blocking.Add(blocker);
+                    continue;
+                }
+                if (Between(blocker.X, blank.X, blank.X + blank.Width, false))
+                {
+                    blocking.Add(blocker);
+                    continue;
+                }
+                if (blank.X >= blocker.X && blocker.X + blocker.Width > blank.X)
+                {
+                    blocking.Add(blocker);
+                    continue;
+                }
+                if (blank.X == blocker.X && blocker.Width > 0)
+                {
+                    blocking.Add(blocker);
+                    continue;
+                }
+            }
+
+            var firstblocker = blocking.OrderBy(x => x.X).FirstOrDefault();
+            return firstblocker;
+        }
+        Rect GetFirstBlockGoingRight(Rect blank, List<Rect> blanks)
+        {
+            var blocking = new List<Rect>();
+            var blanksRight = blanks.Where(x => x.X >= blank.X && blank != x);
+            foreach (var blocker in blanksRight)
+            {
+                if (Between(blank.Y, blocker.Y, blocker.Y + blocker.Height, false))
+                {
+                    blocking.Add(blocker);
+                    continue;
+                }
+                if (Between(blocker.Y, blank.Y, blank.Y + blank.Height, false))
+                {
+                    blocking.Add(blocker);
+                    continue;
+                }
+                if (blank.Y >= blocker.Y && blocker.Y + blocker.Height > blank.Y)
+                {
+                    blocking.Add(blocker);
+                    continue;
+                }
+                if (blank.Y == blocker.Y && blocker.Height > 0)
+                {
+                    blocking.Add(blocker);
+                    continue;
+                }
+            }
+
+            var firstblocker = blocking.OrderBy(x => x.Y).FirstOrDefault();
+            return firstblocker;
         }
 
         public bool Between(double num, double lower, double upper, bool inclusive = false)
@@ -186,5 +285,16 @@ namespace _2dGASheeting.Models
                 ? lower <= num && num <= upper
                 : lower < num && num < upper;
         }
+
+
+    }
+
+    public class RectComparer : Comparer<Rect>
+    {
+        public override int Compare(Rect x, Rect y)
+        {
+            throw new NotImplementedException();
+        }
+
     }
 }

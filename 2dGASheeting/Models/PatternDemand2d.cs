@@ -8,7 +8,7 @@ namespace _2dGASheeting.Models
 {
     public class PatternDemand2d
     {
-        Pattern2d Pattern { get; set; }
+        public Pattern2d Pattern { get; set; }
         public int Demand { get; set; }
     }
 }
