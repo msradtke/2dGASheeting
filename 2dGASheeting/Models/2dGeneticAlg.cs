@@ -17,10 +17,12 @@ namespace _2dGASheeting.Models
         List<Rect> _items;
         double _patternWeight = .1;
         double _masterWeight = .9;
-
+        int _shuffleSolutionCount = 2;
         double additionalPatternSelection = .10;
-
-
+        double _chanceToShuffle = .1;
+        double chanceToReorder = .1;
+        int _mutateCount = 2000;
+        int _crossoverCount = 5000;
         public _2dGeneticAlg()
         {
             _solutions = new List<Solution>();
@@ -29,34 +31,69 @@ namespace _2dGASheeting.Models
         {
             _demand = SampleData.GetSampleData1();
             _items = _demand.Keys.ToList();
-            _population = 500;
+            _population = 10;
             _master = SampleData.Master1;
         }
         public List<Solution> Process()
         {
             CreateInitialSolutions();
-
-            SetFitness();
-            while (_solutions.Count < _population)
+            for (int i = 0; i < _mutateCount; ++i)
             {
                 var children = Crossover();
-                foreach (var sol in children)
+                foreach (var solu in children)
                 {
-                    RepairSolution(sol);
-                    _solutions.Add(sol);
+                    RepairSolution(solu);
+                    _solutions.Add(solu);
+                    SetFitness();
+                    var min = _solutions.Where(x=> _solutions.Min(y=>y.Fitness) == x.Fitness).First();
+                    if (solu.Fitness > min.Fitness)
+                    {                        
+                        _solutions.Remove(min);
+                    }
+                    else
+                        _solutions.Remove(solu);
                 }
                 SetFitness();
+                Mutate();
             }
-            
-            return _solutions.OrderBy(x=>x.MasterCount).ToList();
+            return _solutions.OrderBy(x => x.MasterCount).ToList();
         }
-
         void Mutate()
         {
+            var bf = new BottomLeftBestFitHeuristic(_demand, _master, null);
             var getParent = GetSelectParentFn();
-
             var parent = getParent();
+            Random rn = new Random();
+            var length = parent.PatternDemands.Count;
+            var indexToShuffle = rn.Next(0, length);
+            var patterns = parent.Patterns;
+            var pd = parent.PatternDemands[indexToShuffle];
+            var pattern = patterns[indexToShuffle];
+            var shuffleRan = rn.NextDouble();
 
+            if (shuffleRan <= _chanceToShuffle)//shuffle
+            {
+                
+                pd.Pattern= bf.Shuffle(pd.Pattern);
+                RepairSolution(parent);
+            }
+            else//rotate
+            {
+                shuffleRan = rn.NextDouble();
+                indexToShuffle = rn.Next(0, length);
+                patterns = parent.Patterns;
+                pd = parent.PatternDemands[indexToShuffle];
+                pattern = patterns[indexToShuffle];
+
+                if ((shuffleRan <= _chanceToShuffle))
+                {
+                    parent.PatternDemands.Shuffle();
+                    RepairSolution(parent);
+                }
+            }
+            
+
+            SetFitness();
         }
         void RepairSolution(Solution solution)
         {
@@ -66,7 +103,7 @@ namespace _2dGASheeting.Models
             foreach (var pd in solution.PatternDemands)
             {
                 int max = MaxPatterns(pd.Pattern, newDemand);
-                
+
                 if (max <= 0)
                 {
                     remove.Add(pd);
@@ -85,7 +122,7 @@ namespace _2dGASheeting.Models
             foreach (var r in remove)
                 solution.PatternDemands.Remove(r);
 
-            if(newDemand.Sum(x=>x.Value)>0)
+            if (newDemand.Sum(x => x.Value) > 0)
             {
                 Func<List<Rect>, List<Rect>> sort;
                 sort = (t) =>
@@ -149,13 +186,46 @@ namespace _2dGASheeting.Models
             sol.PatternDemands = BLBF.Process();
             _solutions.Add(sol);
 
+            SetFitness();
+            while (_solutions.Count < _population)
+            {
+                var children = Crossover();
+                foreach (var solu in children)
+                {
+                    RepairSolution(solu);
+                    _solutions.Add(solu);
+                }
+                SetFitness();
+            }
+
+            var pds = _solutions[0].PatternDemands;
+            var bf = new BottomLeftBestFitHeuristic(_demand, _master, null);
+
+            var shufMe = pds.First();
+            var shuffled = bf.Shuffle(shufMe.Pattern);
+            shufMe.Pattern = shuffled;
+            _solutions.Reverse();
+            var shuffleSolutions = _solutions.Take(_shuffleSolutionCount);
+
+
+            foreach (var s in shuffleSolutions)
+            {
+                foreach (var pd in s.PatternDemands)
+                {
+                    pd.Pattern = bf.Shuffle(pd.Pattern);
+                }
+                RepairSolution(s);
+            }
+            SetFitness();
+            //patterns.Remove(shufMe);
+            //patterns.Insert(0, shuffled);
+            //return _solutions.OrderBy(x=>x.MasterCount).ToList();
         }
         void SetFitness()
         {
             SetMasterCountFitness();
             SetPatternCountFitness();
         }
-
         void SetMasterCountFitness()
         {
             var totalMaster = _solutions.Sum(x => x.MasterCount);

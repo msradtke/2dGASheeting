@@ -14,14 +14,17 @@ namespace _2dGASheeting.Models
         List<PatternDemand2d> _patternDemands;
         Rect _master;
         Func<List<Rect>, List<Rect>> _sort;
-        public BottomLeftBestFitHeuristic(Dictionary<Rect, int> demand, Rect master, Func<List<Rect>,List<Rect>> sort)
+        public BottomLeftBestFitHeuristic(Dictionary<Rect, int> demand, Rect master, Func<List<Rect>, List<Rect>> sort)
         {
             _demand = demand;
             _master = master;
             _sort = sort;
-
-            
         }
+        public BottomLeftBestFitHeuristic()
+        {
+
+        }
+
         public void ProcessOld()
         {
             _master = new Rect();
@@ -129,7 +132,7 @@ namespace _2dGASheeting.Models
                         {
                             var sub = max * pattern.Blanks.Count(x => x.Width == i.Width && x.Height == i.Height);
                             residualDemand[i] -= sub;
-                            
+
                         }
                         _patternDemands.Add(new PatternDemand2d { Pattern = pattern, Demand = max });
                         if (residualDemand.Count(x => x.Value > 0) == 0)
@@ -139,6 +142,62 @@ namespace _2dGASheeting.Models
 
             }
             return _patternDemands;
+        }
+
+        public Pattern2d Shuffle(Pattern2d pattern)
+        {
+            //demand should be set to the removed pattern 
+            Pattern2d shuffled = new Pattern2d();
+            shuffled.Master = _master;
+            
+            List<Rect> randBlanks = new List<Rect>(pattern.Blanks);
+            List<Func<Rect, Rect, double, double, bool>> fitFns = new List<Func<Rect, Rect, double, double, bool>>();
+            fitFns.Add(FitsLongToHeight);
+            fitFns.Add(FitsShortToHeight);
+
+            Random ran = new Random();
+            var ranBlanks = randBlanks.Shuffle();
+            bool added = true;
+            for (int i = 0; i < ranBlanks.Length; ++i)
+            {
+                List<int> fitFunHelper = new List<int> { 0, 1 };
+                var blank = ranBlanks[i];
+                var longSide = blank.Width >= blank.Width ? blank.Width : blank.Y;
+                var shortSide = longSide == blank.Width ? blank.Height : blank.Width;
+
+                if (added == true)
+                    SetSpaces(shuffled);
+                added = false;
+                var shuSpaces = shuffled.Spaces.Shuffle();
+                if (shuSpaces.Length == 0)
+                    break;
+                var spaceIndex = ran.Next(0, shuSpaces.Length);
+                var space = shuSpaces[spaceIndex];
+                var fitnum = ran.Next(0, 2);
+                if (fitFns[fitnum](blank, space, longSide, shortSide))
+                {
+                    var newBlank = new Rect(blank);
+                    newBlank.X = space.X;
+                    newBlank.Y = space.Y;
+                    shuffled.Blanks.Add(newBlank);
+                    added = true;
+                }
+                else
+                {
+                    fitFunHelper.Remove(fitnum);
+                    if ((fitFns[fitFunHelper.First()](blank, space, longSide, shortSide)))
+                    {
+                        var newBlank = new Rect(blank);
+                        newBlank.X = space.X;
+                        newBlank.Y = space.Y;
+                        shuffled.Blanks.Add(newBlank);
+                        added = true;
+                    }
+                }
+                
+            }
+            SetSpaces(shuffled);
+            return shuffled;
         }
         int MaxPatterns(Pattern2d pattern, Dictionary<Rect, int> residualDemand, List<Rect> demandReference)
         {
@@ -176,7 +235,15 @@ namespace _2dGASheeting.Models
             var spaces = pattern.Spaces = new List<Rect>();
             var blanks = pattern.Blanks;
             var sortedBlanks = blanks.OrderBy(blank => blank.X).ThenBy(blank => blank.Y);
-
+            if (blanks.Count == 0)
+            {
+                var space = new Rect();
+                space.X = 0;
+                space.Y = 0;
+                space.Width = _master.Width;
+                space.Height = _master.Height;
+                spaces.Add(space);
+            }
             foreach (var blank in sortedBlanks)
             {
                 var space = new Rect();
@@ -298,5 +365,5 @@ namespace _2dGASheeting.Models
 
 
     }
-    
+
 }
