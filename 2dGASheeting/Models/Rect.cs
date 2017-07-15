@@ -42,6 +42,13 @@ namespace _2dGASheeting.Models
         {
             return obj.GetHashCode();
         }
+        public Rect Rotated()
+        {
+            var r = new Rect();
+            r.Width = this.Height;
+            r.Height = this.Width;
+            return r;
+        }
     }
     public class RectComparer : IEqualityComparer<Rect>
     {

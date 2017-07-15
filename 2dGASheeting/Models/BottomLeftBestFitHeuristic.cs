@@ -101,7 +101,7 @@ namespace _2dGASheeting.Models
                             var orderedSpaces = pattern.Spaces.OrderBy(x => x.Y).ThenBy(x => x.X);
                             foreach (var space in orderedSpaces)
                             {
-                                if (FitsLongToHeight(blank, space, longSide, shortSide))
+                                if (FitsLongToHeight(blank, space, longSide, shortSide)) //
                                     blankFits = true;
                                 else if (FitsShortToHeight(blank, space, longSide, shortSide))
                                     blankFits = true;

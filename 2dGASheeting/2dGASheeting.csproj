@@ -67,6 +67,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Models\BestFitScrap.cs" />
     <Compile Include="Models\Helpers.cs" />
     <Compile Include="Models\SampleData.cs" />
     <Compile Include="Services\DrawPattern2dService.cs" />
