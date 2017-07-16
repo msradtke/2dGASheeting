@@ -56,7 +56,7 @@ namespace _2dGASheeting.Models
             pattern.Blanks.Add(rect2);
             pattern.Blanks.Add(rect3);
             pattern.Blanks.Add(rect4);
-            SetSpaces(pattern);
+            SetSpaces(pattern, _master);
         }
         public List<PatternDemand2d> Process()
         {
@@ -71,6 +71,8 @@ namespace _2dGASheeting.Models
                 var orderedSizes = _sort(residualDemand.Where(x => x.Value > 0).Select(x => x.Key).ToList()).ToList();
 
                 var stack = new Stack<Rect>(orderedSizes);
+                stack.Reverse();
+
                 var pattern = new Pattern2d();
                 addedBlanks = new List<Rect>();
                 pattern.Master = _master;
@@ -88,29 +90,30 @@ namespace _2dGASheeting.Models
                             continue;
                         bool blankFits = true;
 
+
                         while (blankFits)
                         {
-                            var blank = new Rect(newBlank);
+                            var blankCopy = new Rect(newBlank);
                             if (pattern.Blanks.Count > 0)
-                                SetSpaces(pattern);
+                                SetSpaces(pattern,_master);
 
                             blankFits = false;
-                            var longSide = blank.Width >= blank.Width ? blank.Width : blank.Y;
-                            var shortSide = longSide == blank.Width ? blank.Height : blank.Width;
+                            var longSide = blankCopy.Width >= blankCopy.Width ? blankCopy.Width : blankCopy.Y;
+                            var shortSide = longSide == blankCopy.Width ? blankCopy.Height : blankCopy.Width;
 
                             var orderedSpaces = pattern.Spaces.OrderBy(x => x.Y).ThenBy(x => x.X);
                             foreach (var space in orderedSpaces)
                             {
-                                if (FitsLongToHeight(blank, space, longSide, shortSide)) //
+                                if (FitsLongToHeight(blankCopy, space, longSide, shortSide)) //
                                     blankFits = true;
-                                else if (FitsShortToHeight(blank, space, longSide, shortSide))
+                                else if (FitsShortToHeight(blankCopy, space, longSide, shortSide))
                                     blankFits = true;
 
                                 if (blankFits == true)
                                 {
-                                    blank.X = space.X;
-                                    blank.Y = space.Y;
-                                    pattern.Blanks.Add(blank);
+                                    blankCopy.X = space.X;
+                                    blankCopy.Y = space.Y;
+                                    pattern.Blanks.Add(blankCopy);
                                     if (!addedBlanks.Contains(newBlank))
                                         addedBlanks.Add(newBlank);
                                     tempDemand--;
@@ -126,11 +129,11 @@ namespace _2dGASheeting.Models
                     if (masterIsComplete)
                     {
                         if (pattern.Blanks.Count > 0)
-                            SetSpaces(pattern);
+                            SetSpaces(pattern,_master);
                         var max = MaxPatterns(pattern, residualDemand, addedBlanks);
                         foreach (var i in addedBlanks)
                         {
-                            var sub = max * pattern.Blanks.Count(x => x.Width == i.Width && x.Height == i.Height);
+                            var sub = max * pattern.Blanks.Count(x => x.Equals(i));
                             residualDemand[i] -= sub;
 
                         }
@@ -166,7 +169,7 @@ namespace _2dGASheeting.Models
                 var shortSide = longSide == blank.Width ? blank.Height : blank.Width;
 
                 if (added == true)
-                    SetSpaces(shuffled);
+                    SetSpaces(shuffled, _master);
                 added = false;
                 var shuSpaces = shuffled.Spaces.Shuffle();
                 if (shuSpaces.Length == 0)
@@ -196,16 +199,16 @@ namespace _2dGASheeting.Models
                 }
                 
             }
-            SetSpaces(shuffled);
+            SetSpaces(shuffled, _master);
             return shuffled;
         }
-        int MaxPatterns(Pattern2d pattern, Dictionary<Rect, int> residualDemand, List<Rect> demandReference)
+        public int MaxPatterns(Pattern2d pattern, Dictionary<Rect, int> residualDemand, List<Rect> demandReference)
         {
             int max = int.MaxValue;
             foreach (var item in demandReference)
             {
 
-                var count = pattern.Blanks.Count(x => x.Width == item.Width && x.Height == item.Height);
+                var count = pattern.Blanks.Count(x => x.Equals(item));
 
 
                 var demand = residualDemand[item];
@@ -217,20 +220,31 @@ namespace _2dGASheeting.Models
 
             return max;
         }
-        bool FitsLongToHeight(Rect blank, Rect space, double longSide, double shortSide)
+        public bool FitsLongToHeight(Rect blank, Rect space, double longSide, double shortSide)
         {
             if (longSide <= space.Height && shortSide <= space.Width)
                 return true;
             return false;
         }
-        bool FitsShortToHeight(Rect blank, Rect space, double longSide, double shortSide)
+        public bool FitsShortToHeight(Rect blank, Rect space, double longSide, double shortSide)
         {
             if (longSide <= space.Width && shortSide <= space.Height)
                 return true;
             return false;
         }
-
-        void SetSpaces(Pattern2d pattern)
+        public bool FitsWidthToWidth(Rect blank, Rect space)
+        {
+            if (blank.Width <= space.Width && blank.Height <= space.Height)
+                return true;
+            return false;
+        }
+        public bool FitsWidthToHeight(Rect blank, Rect space)
+        {
+            if (blank.Width <= space.Height && blank.Height <= space.Width)
+                return true;
+            return false;
+        }
+        public void SetSpaces(Pattern2d pattern, Rect master)
         {
             var spaces = pattern.Spaces = new List<Rect>();
             var blanks = pattern.Blanks;
@@ -240,18 +254,24 @@ namespace _2dGASheeting.Models
                 var space = new Rect();
                 space.X = 0;
                 space.Y = 0;
-                space.Width = _master.Width;
-                space.Height = _master.Height;
+                space.Width = master.Width;
+                space.Height = master.Height;
                 spaces.Add(space);
             }
+            var rotate = false;
             foreach (var blank in sortedBlanks)
             {
+                if (blank.Height > blank.Width)
+                {
+                    blank.Rotate();
+                    rotate = true;
+                }
                 var space = new Rect();
                 space.X = blank.X;
                 space.Y = blank.Y + blank.Height;
                 var firstBlankAbove = GetFirstBlockGoingUp(blank, blanks);
                 if (firstBlankAbove == null)
-                    space.Height = _master.Height - space.Y;
+                    space.Height = master.Height - space.Y;
                 else
                 {
                     space.Height = firstBlankAbove.Y - space.Y;
@@ -259,7 +279,7 @@ namespace _2dGASheeting.Models
 
                 var firstBlankRight = GetFirstBlockGoingRight(space, blanks);
                 if (firstBlankRight == null)
-                    space.Width = _master.Width - space.X;
+                    space.Width = master.Width - space.X;
                 else
                 {
                     space.Width = firstBlankRight.X - space.X;
@@ -272,7 +292,7 @@ namespace _2dGASheeting.Models
                 space.Y = blank.Y;
                 firstBlankRight = GetFirstBlockGoingRight(blank, blanks);
                 if (firstBlankRight == null)
-                    space.Width = _master.Width - space.X;
+                    space.Width = master.Width - space.X;
                 else
                 {
                     space.Width = firstBlankRight.X - space.X;
@@ -282,13 +302,18 @@ namespace _2dGASheeting.Models
 
                 firstBlankAbove = GetFirstBlockGoingUp(space, blanks);
                 if (firstBlankAbove == null)
-                    space.Height = _master.Height - space.Y;
+                    space.Height = master.Height - space.Y;
                 else
                 {
                     space.Height = firstBlankAbove.Y - space.Y;
                 }
                 if (space.Height > 0 && space.Width > 0)
                     spaces.Add(space);
+
+                if (rotate)
+                {
+                    blank.Rotate();
+                }
             }
 
         }
@@ -296,7 +321,7 @@ namespace _2dGASheeting.Models
         {
             var blocking = new List<Rect>();
 
-            var blanksAbove = blanks.Where(x => x.Y >= blank.Y && blank != x);
+            var blanksAbove = blanks.Where(x => x.Y >= blank.Y+blank.Height && !blank.IsExactlyEqual(x));
             foreach (var blocker in blanksAbove)
             {
                 if (Between(blank.X, blocker.X, blocker.X + blocker.Width, false))
@@ -321,13 +346,17 @@ namespace _2dGASheeting.Models
                 }
             }
 
-            var firstblocker = blocking.OrderBy(x => x.X).FirstOrDefault();
+            var firstblocker = blocking.OrderBy(x => x.X).ThenBy(x=>x.Y).FirstOrDefault();
             return firstblocker;
         }
         Rect GetFirstBlockGoingRight(Rect blank, List<Rect> blanks)
         {
+            if(blanks.Count > 13)
+            {
+
+            }
             var blocking = new List<Rect>();
-            var blanksRight = blanks.Where(x => x.X >= blank.X && blank != x);
+            var blanksRight = blanks.Where(x => x.X >= blank.X && !blank.IsExactlyEqual(x));
             foreach (var blocker in blanksRight)
             {
                 if (Between(blank.Y, blocker.Y, blocker.Y + blocker.Height, false))
@@ -352,7 +381,7 @@ namespace _2dGASheeting.Models
                 }
             }
 
-            var firstblocker = blocking.OrderBy(x => x.Y).FirstOrDefault();
+            var firstblocker = blocking.OrderBy(x => x.Y).ThenBy(x => x.X).FirstOrDefault();
             return firstblocker;
         }
 

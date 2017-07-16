@@ -21,8 +21,8 @@ namespace _2dGASheeting.Models
         double additionalPatternSelection = .10;
         double _chanceToShuffle = .1;
         double chanceToReorder = .1;
-        int _mutateCount = 2000;
-        int _crossoverCount = 5000;
+        int _mutateCount = 0;
+        int _crossoverCount = 100;
         public _2dGeneticAlg()
         {
             _solutions = new List<Solution>();
@@ -154,7 +154,6 @@ namespace _2dGASheeting.Models
         public void CreateInitialSolutions()
         {
             List<PatternDemand2d> allSolutions = new List<PatternDemand2d>();
-
             var sol = new Solution();
             Func<List<Rect>, List<Rect>> _sort;
             _sort = (t) =>
@@ -185,6 +184,22 @@ namespace _2dGASheeting.Models
             BLBF = new BottomLeftBestFitHeuristic(_demand, _master, _sort);
             sol.PatternDemands = BLBF.Process();
             _solutions.Add(sol);
+
+            //////////
+
+            var bestScrap = new BestFitScrap();
+            sol = new Solution();
+            _sort = (t) =>
+            {
+                return t.OrderByDescending(x => x.Height * x.Width).ToList();
+            };
+            sol.PatternDemands = bestScrap.Process(_demand, _sort, _master, x => true);
+
+            //testing
+            _solutions = new List<Solution>();
+            _solutions.Add(sol);
+            return;
+            ///////////
 
             SetFitness();
             while (_solutions.Count < _population)

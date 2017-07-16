@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Drawing;
 namespace _2dGASheeting.Models
 {
-    public class Pattern2d
+    public class Pattern2d : IEquatable<Pattern2d>
     {
         public Pattern2d()
         {
@@ -36,6 +36,36 @@ namespace _2dGASheeting.Models
                 }
             }
             return distinct;
+        }
+
+        public Pattern2d GetCopy()
+        {
+            var newPattern = new Pattern2d();
+            foreach (var blank in Blanks)
+            {
+                var copyBlank = new Rect(blank);
+                newPattern.Blanks.Add(copyBlank);
+
+            }
+            foreach (var space in Spaces)
+            {
+                var copySpace = new Rect(space);
+                newPattern.Spaces.Add(copySpace);
+            }
+            newPattern.Master = Master;
+            return newPattern;
+        }
+
+        public bool Equals(Pattern2d other)
+        {
+            if (Blanks.Count != other.Blanks.Count)
+                return false;
+            foreach(var blank in Blanks)
+            {
+                if (other.Blanks.Count(x => x.Equals(blank) && x.X == blank.X && x.Y == blank.Y) != 1)
+                    return false;                
+            }
+            return true;
         }
     }
 }

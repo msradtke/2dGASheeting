@@ -23,19 +23,34 @@ namespace _2dGASheeting.Models
         public double Width { get; set; }
         public double X { get; set; }
         public double Y { get; set; }
-
+        public void Rotate()
+        {
+            var swapH = Height;
+            Height = Width;
+            Width = swapH;
+        }
         public bool Equals(Rect other)
         {
-            if (Height != other.Height) return false;
-            if (Width != other.Width) return false;
-            return true;
+
+            if (Height == other.Height && Width == other.Width) return true;
+            if (Height == other.Width && Width == other.Height) return true;
+            return false;
+        }
+
+        public bool IsExactlyEqual(Rect other)
+        {
+            if (X != other.X || Y != other.Y) return false;
+
+            if (Height == other.Height && Width == other.Width) return true;
+            if (Height == other.Width && Width == other.Height) return true;
+            return false;
         }
 
         public bool Equals(Rect x, Rect y)
         {
-            if (x.Height != y.Height) return false;
-            if (x.Width != y.Width) return false;
-            return true;
+            if (x.Height == y.Height && x.Width == y.Width) return true;
+            if (x.Height == y.Width && x.Width == y.Height) return true;
+            return false;
         }
 
         public int GetHashCode(Rect obj)
@@ -54,9 +69,9 @@ namespace _2dGASheeting.Models
     {
         public bool Equals(Rect x, Rect y)
         {
-            if (x.Height != y.Height) return false;
-            if (x.Width != y.Width) return false;
-            return true;
+            if (x.Height == x.Height && x.Width == x.Width) return true;
+            if (x.Height == x.Width && x.Width == x.Height) return true;
+            return false;
         }
 
         public int GetHashCode(Rect obj)
@@ -64,4 +79,13 @@ namespace _2dGASheeting.Models
             return (int)(obj.Height * obj.Width * 23);
         }
     }
+
+    public class BlankEquality : IEquatable<Rect>
+    {
+        public bool Equals(Rect other)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
 }

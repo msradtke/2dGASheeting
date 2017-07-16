@@ -56,7 +56,7 @@ namespace _2dGASheeting.Services
                     Stroke = Brushes.Black,
                     StrokeThickness = 1,
                     Fill = Brushes.LightBlue,
-                    Opacity = .7
+                    Opacity = .8
                 };
 
                 rect.Width = spaces.Width * _scale;
