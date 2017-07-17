@@ -38,7 +38,8 @@ namespace _2dGASheeting.Services
                 {
                     Stroke = Brushes.Black,
                     StrokeThickness = 1,
-                    Fill = Brushes.Green
+                    Fill = Brushes.Green,
+                    Opacity = 1
                 };
                 rect.Width = blank.Width * _scale;
                 rect.Height = blank.Height * _scale;

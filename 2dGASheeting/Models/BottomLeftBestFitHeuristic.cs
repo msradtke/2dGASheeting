@@ -95,7 +95,7 @@ namespace _2dGASheeting.Models
                         {
                             var blankCopy = new Rect(newBlank);
                             if (pattern.Blanks.Count > 0)
-                                SetSpaces(pattern,_master);
+                                SetSpaces(pattern, _master);
 
                             blankFits = false;
                             var longSide = blankCopy.Width >= blankCopy.Width ? blankCopy.Width : blankCopy.Y;
@@ -129,7 +129,7 @@ namespace _2dGASheeting.Models
                     if (masterIsComplete)
                     {
                         if (pattern.Blanks.Count > 0)
-                            SetSpaces(pattern,_master);
+                            SetSpaces(pattern, _master);
                         var max = MaxPatterns(pattern, residualDemand, addedBlanks);
                         foreach (var i in addedBlanks)
                         {
@@ -152,7 +152,7 @@ namespace _2dGASheeting.Models
             //demand should be set to the removed pattern 
             Pattern2d shuffled = new Pattern2d();
             shuffled.Master = _master;
-            
+
             List<Rect> randBlanks = new List<Rect>(pattern.Blanks);
             List<Func<Rect, Rect, double, double, bool>> fitFns = new List<Func<Rect, Rect, double, double, bool>>();
             fitFns.Add(FitsLongToHeight);
@@ -197,7 +197,7 @@ namespace _2dGASheeting.Models
                         added = true;
                     }
                 }
-                
+
             }
             SetSpaces(shuffled, _master);
             return shuffled;
@@ -246,9 +246,17 @@ namespace _2dGASheeting.Models
         }
         public void SetSpaces(Pattern2d pattern, Rect master)
         {
+
             var spaces = pattern.Spaces = new List<Rect>();
             var blanks = pattern.Blanks;
             var sortedBlanks = blanks.OrderBy(blank => blank.X).ThenBy(blank => blank.Y);
+
+
+            if(blanks.Exists(x=>x.Height == 1))
+            {
+
+            }
+
             if (blanks.Count == 0)
             {
                 var space = new Rect();
@@ -276,7 +284,6 @@ namespace _2dGASheeting.Models
                 {
                     space.Height = firstBlankAbove.Y - space.Y;
                 }
-
                 var firstBlankRight = GetFirstBlockGoingRight(space, blanks);
                 if (firstBlankRight == null)
                     space.Width = master.Width - space.X;
@@ -316,12 +323,19 @@ namespace _2dGASheeting.Models
                 }
             }
 
+            foreach (var blank in pattern.Blanks)
+            {
+                if (pattern.Spaces.Count(x => x.X == blank.X && x.Y == blank.Y) > 0)
+                {
+
+                }
+            }
         }
         Rect GetFirstBlockGoingUp(Rect blank, List<Rect> blanks)
         {
             var blocking = new List<Rect>();
 
-            var blanksAbove = blanks.Where(x => x.Y >= blank.Y+blank.Height && !blank.IsExactlyEqual(x));
+            var blanksAbove = blanks.Where(x => x.Y >= blank.Y + blank.Height && !blank.IsExactlyEqual(x));
             foreach (var blocker in blanksAbove)
             {
                 if (Between(blank.X, blocker.X, blocker.X + blocker.Width, false))
@@ -345,13 +359,12 @@ namespace _2dGASheeting.Models
                     continue;
                 }
             }
-
-            var firstblocker = blocking.OrderBy(x => x.X).ThenBy(x=>x.Y).FirstOrDefault();
+            var firstblocker = blocking.OrderBy(x => x.Y).ThenBy(x => x.X).FirstOrDefault();
             return firstblocker;
         }
         Rect GetFirstBlockGoingRight(Rect blank, List<Rect> blanks)
         {
-            if(blanks.Count > 13)
+            if (blanks.Count > 13)
             {
 
             }
@@ -381,7 +394,7 @@ namespace _2dGASheeting.Models
                 }
             }
 
-            var firstblocker = blocking.OrderBy(x => x.Y).ThenBy(x => x.X).FirstOrDefault();
+            var firstblocker = blocking.OrderBy(x => x.X).ThenBy(x => x.Y).FirstOrDefault();
             return firstblocker;
         }
 
